@@ -31,6 +31,7 @@ import com.example.game.hud.GameHudOverlay
 import com.example.game.menu.*
 import com.example.game.player.Direction
 import com.example.game.player.drawPlayer
+import com.example.game.enemy.drawEnemy
 import com.example.game.core.GameState
 import com.example.game.world.Particle
 import com.example.game.world.Projectile
@@ -271,61 +272,7 @@ fun GameViewCanvas(
 
             // --- DRAW ENEMIES ---
             enemies.forEach { enemy ->
-                val ex = enemy.x * scaleX
-                val ey = enemy.y * scaleY
-                val r = enemy.radius * scaleX
-
-                // Draw specific models based on enemy types
-                when (enemy.type) {
-                    EnemyType.SCRAB_SCAVENGER, EnemyType.ASHWARDEN, EnemyType.ROPE_CROAKER, EnemyType.GEARFOLK -> {
-                        // Void shadow blob with red eyes
-                        drawCircle(color = SurfaceDark, radius = r, center = Offset(ex, ey))
-                        drawCircle(color = VitalityRed, radius = r * 0.3f, center = Offset(ex + (if (enemy.direction == Direction.LEFT) -5f else 5f) * scaleX, ey - 3f * scaleY))
-                    }
-                    EnemyType.PAGE_SCRAPER, EnemyType.SHARDLING, EnemyType.ROOTCRAWLER -> {
-                        // Cyan spider shape with crawling legs
-                        drawCircle(color = Color(0xFF006064), radius = r, center = Offset(ex, ey))
-                        drawCircle(color = EchoesBlue, radius = r * 0.3f, center = Offset(ex, ey))
-                        // Spider legs
-                        drawLine(EchoesBlue, Offset(ex - r, ey), Offset(ex - r - 10f * scaleX, ey + 10f * scaleY), strokeWidth = 2.dp.toPx())
-                        drawLine(EchoesBlue, Offset(ex + r, ey), Offset(ex + r + 10f * scaleX, ey + 10f * scaleY), strokeWidth = 2.dp.toPx())
-                    }
-                    EnemyType.ECHO_SHADE, EnemyType.GLOW_WISP -> {
-                        // Pulsating void sphere
-                        val time = System.currentTimeMillis()
-                        val pulse = (Math.sin(time / 150.0) + 1.0) / 2.0
-                        val pr = r * (0.8f + pulse * 0.25f).toFloat()
-
-                        drawCircle(color = Color(0xFF4A148C), radius = pr, center = Offset(ex, ey), style = Stroke(width = 2.dp.toPx()))
-                        drawCircle(color = Color(0xFF9C27B0), radius = pr * 0.5f, center = Offset(ex, ey))
-                    }
-                    EnemyType.DRIFT_KNIGHT -> {
-                        // Hovering sentinel core with geometric diamonds
-                        val path = androidx.compose.ui.graphics.Path().apply {
-                            moveTo(ex, ey - r)
-                            lineTo(ex + r, ey)
-                            lineTo(ex, ey + r)
-                            lineTo(ex - r, ey)
-                            close()
-                        }
-                        drawPath(path, color = BlightGold)
-                        drawCircle(color = RadianceWhite, radius = r * 0.25f, center = Offset(ex, ey))
-                    }
-                }
-
-                // Enemy Health bar
-                val barW = enemy.radius * 2 * scaleX
-                val barH = 4 * scaleY
-                drawRect(
-                    color = Color.Black,
-                    topLeft = Offset(ex - enemy.radius * scaleX, ey - enemy.radius * scaleX - 12 * scaleY),
-                    size = Size(barW, barH)
-                )
-                drawRect(
-                    color = VitalityRed,
-                    topLeft = Offset(ex - enemy.radius * scaleX, ey - enemy.radius * scaleX - 12 * scaleY),
-                    size = Size(barW * (enemy.hp / enemy.maxHp), barH)
-                )
+                drawEnemy(enemy, scaleX, scaleY)
             }
 
             // --- DRAW PROJECTILES ---
