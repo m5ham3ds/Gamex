@@ -566,7 +566,7 @@ class GameViewModel : ViewModel() {
     }
 
     // --- PLAYER ACTION COMBO SYSTEMS ---
-    fun onSlashAttack() {
+    fun onLightAttack() {
         if (_isSlashing.value) return
         _isSlashing.value = true
 
@@ -578,19 +578,46 @@ class GameViewModel : ViewModel() {
             val dist = abs(enemy.x - p.x)
             val isWithinHeightY = abs(enemy.y - p.y) < 50f
             if (dist < range && isWithinHeightY) {
-                // Direction sights constraint
                 val isLookingAtEnemy = (p.direction == Direction.RIGHT && enemy.x > p.x) ||
                         (p.direction == Direction.LEFT && enemy.x < p.x)
                 if (isLookingAtEnemy) {
-                    damageEnemy(idx, 25f + (p.level * 4f))
+                    damageEnemy(idx, 15f + (p.level * 2f)) // Light damage
                 }
             }
         }
 
-        // Slash timeout
         slashTimeoutJob?.cancel()
         slashTimeoutJob = viewModelScope.launch {
-            delay(180)
+            delay(120) // Shorter recovery for light attack
+            _isSlashing.value = false
+        }
+    }
+
+    fun onHeavyAttack() {
+        if (_isSlashing.value) return
+        _isSlashing.value = true
+
+        val p = _player.value
+        val range = 120f
+        
+        _enemies.value.forEachIndexed { idx, enemy ->
+            val dist = abs(enemy.x - p.x)
+            val isWithinHeightY = abs(enemy.y - p.y) < 60f
+            if (dist < range && isWithinHeightY) {
+                val isLookingAtEnemy = (p.direction == Direction.RIGHT && enemy.x > p.x) ||
+                        (p.direction == Direction.LEFT && enemy.x < p.x)
+                if (isLookingAtEnemy) {
+                    // Knockback and heavy damage
+                    val pushVx = if (p.direction == Direction.LEFT) -8f else 8f
+                    knockbackEnemy(idx, pushVx, -4f)
+                    damageEnemy(idx, 35f + (p.level * 5f))
+                }
+            }
+        }
+
+        slashTimeoutJob?.cancel()
+        slashTimeoutJob = viewModelScope.launch {
+            delay(300) // Longer recovery for heavy attack
             _isSlashing.value = false
         }
     }
@@ -603,35 +630,54 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    fun onDashAction() {
+    fun onSatchelThrow() {
         val p = _player.value
-        val cost = 15f
+        val cost = 20f
         if (p.energy >= cost) {
-            val dashVx = if (p.direction == Direction.LEFT) -18f else 18f
-            _player.value = p.copy(
-                vx = dashVx,
-                energy = p.energy - cost
-            )
-            triggerSparks(p.x, p.y, EchoesBlue)
+            _player.value = p.copy(energy = p.energy - cost)
+            val vx = if (p.direction == Direction.LEFT) -12f else 12f
+            
+            val list = _projectiles.value.toMutableList()
+            list.add(Projectile(p.x, p.y - 10f, vx, -4f, radius = 8f, isPlayerOwned = true))
+            _projectiles.value = list
+
+            triggerSparks(p.x, p.y, OutlineGray)
         }
     }
 
-    fun useMemoryPower() {
+    fun useMaskShardBlast() {
         val p = _player.value
-        val cost = 20f
-        if (p.energy >= cost && !p.soulShieldActive) {
+        if (p.memoryFragments >= 3) {
             _player.value = p.copy(
-                energy = p.energy - cost,
-                soulShieldActive = true
+                memoryFragments = p.memoryFragments - 3,
+                forgetfulness = p.forgetfulness + 4f
             )
-            triggerSparks(p.x, p.y, Color(0xFFB470E0))
+            triggerSparks(p.x, p.y, RadianceWhite)
+            
+            // Massive AOE damage
+            _enemies.value.forEachIndexed { idx, enemy ->
+                val dist = abs(enemy.x - p.x) + abs(enemy.y - p.y)
+                if (dist < 250f) {
+                    damageEnemy(idx, 100f) // Mask Shard immense damage
+                }
+            }
         }
     }
+
 
     private fun shootEnemyProjectile(x: Float, y: Float, vx: Float, vy: Float) {
         val list = _projectiles.value.toMutableList()
         list.add(Projectile(x, y, vx, vy, isPlayerOwned = false))
         _projectiles.value = list
+    }
+
+    private fun knockbackEnemy(index: Int, pushVx: Float, pushVy: Float) {
+        val list = _enemies.value.toMutableList()
+        if (index in list.indices) {
+            val enemy = list[index]
+            list[index] = enemy.copy(vx = pushVx, vy = pushVy)
+            _enemies.value = list
+        }
     }
 
     // --- GAME HEALTH & SOUL DEPRECIATION ---

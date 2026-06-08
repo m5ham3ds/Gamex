@@ -135,7 +135,7 @@ fun GameHudOverlay(
 
             // FORGETFULNESS METER (FM)
             Text(
-                text = "عَمَقُ النِّسْيَانِ • FORGETFULNESS",
+                text = "مِقْيَاسُ النِّسْيَانِ • FM (${player.forgetfulness.toInt()}/100)",
                 fontSize = (7.5.sp.value * hudScale).sp,
                 color = Color(0xFFB470E0),
                 fontWeight = FontWeight.Bold
@@ -213,25 +213,16 @@ fun GameHudOverlay(
             Spacer(modifier = Modifier.height(4.dp * hudScale))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (player.soulShieldActive) {
-                    Text(
-                        "🛡️ دِرْعُ الروح ",
-                        fontSize = (8.sp.value * hudScale).sp,
-                        color = EchoesBlue,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                }
                 Text(
-                    "شَظَايَا • FRAGS: ",
+                    "شَظَايَا الذِّكْرَيَات • MF: ",
                     fontSize = (8.sp.value * hudScale).sp,
-                    color = Color(0xFFB470E0)
+                    color = RadianceWhite
                 )
                 Text(
                     "${player.memoryFragments}",
                     fontSize = (12.sp.value * hudScale).sp,
                     fontWeight = FontWeight.Bold,
-                    color = Color(0xFFB470E0)
+                    color = RadianceWhite
                 )
             }
 
@@ -341,24 +332,24 @@ fun GameHudOverlay(
                 horizontalArrangement = Arrangement.spacedBy(6.dp * controlScale),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Weapon Memory Power Button (Star)
+                // Mask Shard Blast (Top capability)
                 ActionButtonWidget(
                     icon = {
                         Icon(
                             Icons.Filled.Star,
-                            contentDescription = "Memory Power",
+                            contentDescription = "Mask Shard Blast",
                             modifier = Modifier.size(18.dp * controlScale),
-                            tint = Color(0xFFB470E0)
+                            tint = RadianceWhite
                         )
                     },
-                    activeColor = Color(0xFFB470E0),
+                    activeColor = RadianceWhite,
                     onClick = {
-                        viewModel.useMemoryPower()
+                        viewModel.useMaskShardBlast()
                     },
                     size = 36.dp * controlScale
                 )
 
-                // Slash Attack Button (Sword Symbol)
+                // Light Attack Button
                 ActionButtonWidget(
                     icon = {
                         Box(contentAlignment = Alignment.Center) {
@@ -370,44 +361,62 @@ fun GameHudOverlay(
                     },
                     activeColor = VitalityRed,
                     onClick = {
-                        viewModel.onSlashAttack()
+                        viewModel.onLightAttack()
                     },
                     size = 36.dp * controlScale
                 )
 
-                // Jump Button (Up Arrow)
+                // Heavy / Parry Button
+                ActionButtonWidget(
+                    icon = {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                "🛡️",
+                                fontSize = (14.sp.value * controlScale).sp
+                            )
+                        }
+                    },
+                    activeColor = BlightGold,
+                    onClick = {
+                        viewModel.onHeavyAttack()
+                    },
+                    size = 36.dp * controlScale
+                )
+
+                // Jump Button
                 ActionButtonWidget(
                     icon = {
                         Icon(
                             Icons.Filled.KeyboardArrowUp,
                             contentDescription = "Jump",
                             modifier = Modifier.size(20.dp * controlScale),
-                            tint = RadianceWhite
+                            tint = EchoesBlue
                         )
                     },
-                    activeColor = OutlineGray,
+                    activeColor = EchoesBlue,
                     onClick = {
                         viewModel.handleJump()
                     },
                     size = 36.dp * controlScale
                 )
 
-                // Dash Action Button (Lightning Bolt)
+                // Satchel Throw
                 ActionButtonWidget(
                     icon = {
-                        Icon(
-                            Icons.Filled.Refresh,
-                            contentDescription = "Dash",
-                            modifier = Modifier.size(18.dp * controlScale),
-                            tint = EchoesBlue
-                        )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                "🎒",
+                                fontSize = (14.sp.value * controlScale).sp
+                            )
+                        }
                     },
-                    activeColor = EchoesBlue,
+                    activeColor = Color(0xFF8D6E63),
                     onClick = {
-                        viewModel.onDashAction()
+                        viewModel.onSatchelThrow()
                     },
                     size = 36.dp * controlScale
                 )
+
             }
         }
     }
