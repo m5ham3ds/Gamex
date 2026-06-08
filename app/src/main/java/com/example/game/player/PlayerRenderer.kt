@@ -1,0 +1,102 @@
+package com.example.game.player
+
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
+import com.example.ui.theme.*
+
+fun DrawScope.drawPlayer(
+    player: PlayerState,
+    scaleX: Float,
+    scaleY: Float,
+    isSlashing: Boolean
+) {
+    val px = player.x * scaleX
+    val py = player.y * scaleY
+    val pr = player.radius * scaleX
+
+    // 1. Black Coat / Body
+    drawRoundRect(
+        color = Color(0xFF141A22), // SurfaceDark
+        topLeft = Offset(px - pr, py - pr),
+        size = Size(pr * 2, pr * 2.5f),
+        cornerRadius = CornerRadius(4 * scaleX, 4 * scaleY)
+    )
+
+    // 2. Coat white trims
+    drawLine(
+        color = RadianceWhite,
+        start = Offset(px - pr, py - pr),
+        end = Offset(px - pr, py + pr * 1.5f),
+        strokeWidth = 2.dp.toPx()
+    )
+
+    // 3. Satchels (swinging based on velocity)
+    val swayX = -(player.vx * 0.5f).coerceIn(-5f, 5f) * scaleX
+    drawRoundRect(
+        color = Color(0xFF4A3A2C),
+        topLeft = Offset(px + pr * 0.4f + swayX, py + pr * 0.5f),
+        size = Size(8 * scaleX, 10 * scaleY),
+        cornerRadius = CornerRadius(2 * scaleX, 2 * scaleY)
+    )
+
+    // 4. Porcelain White Mask
+    drawCircle(
+        color = Color(0xFFF6F6F6),
+        radius = pr * 0.7f,
+        center = Offset(px, py - pr * 0.5f)
+    )
+
+    // 5. Expressive bright white eyes looking in the facing direction (slits)
+    val eyeLookOffset = if (player.direction == Direction.LEFT) -3f * scaleX else 3f * scaleX
+    val eyeX1 = px + eyeLookOffset - 4f * scaleX
+    val eyeX2 = px + eyeLookOffset + 4f * scaleX
+    val eyeY = py - pr * 0.5f - 1f * scaleY
+
+    drawLine(color = Color.Black, start = Offset(eyeX1 - 2*scaleX, eyeY), end = Offset(eyeX1 + 2*scaleX, eyeY), strokeWidth = 2.dp.toPx())
+    drawLine(color = Color.Black, start = Offset(eyeX2 - 2*scaleX, eyeY), end = Offset(eyeX2 + 2*scaleX, eyeY), strokeWidth = 2.dp.toPx())
+    drawCircle(color = RadianceWhite, radius = 1.5f * scaleX, center = Offset(eyeX1, eyeY))
+    drawCircle(color = RadianceWhite, radius = 1.5f * scaleX, center = Offset(eyeX2, eyeY))
+
+    // 6. Black Wide Hat
+    val pathHat = Path().apply {
+        moveTo(px - pr * 1.5f, py - pr * 1.1f)
+        lineTo(px + pr * 1.5f, py - pr * 1.1f)
+        lineTo(px + pr * 0.8f, py - pr * 1.6f)
+        lineTo(px - pr * 0.8f, py - pr * 1.6f)
+        close()
+    }
+    drawPath(pathHat, color = VoidPrimary)
+
+    // --- MEMORY SHIELD AURA ---
+    if (player.soulShieldActive) {
+        drawCircle(
+            color = RadianceWhite.copy(alpha = 0.6f),
+            radius = pr * 1.8f,
+            center = Offset(px, py),
+            style = Stroke(width = 2.dp.toPx())
+        )
+    }
+
+    // --- SWORD SLASH ARC ANIMATION ---
+    if (isSlashing) {
+        val slashDir = if (player.direction == Direction.LEFT) -1f else 1f
+        val slashPath = Path().apply {
+            moveTo(px, py - 20 * scaleY)
+            quadraticBezierTo(
+                px + 50 * slashDir * scaleX, py,
+                px, py + 20 * scaleY
+            )
+        }
+        drawPath(
+            path = slashPath,
+            color = RadianceWhite,
+            style = Stroke(width = 3.dp.toPx())
+        )
+    }
+}

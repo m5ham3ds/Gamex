@@ -38,7 +38,8 @@ fun GameHudOverlay(
     viewModel: GameViewModel,
     player: PlayerState,
     onPauseClick: () -> Unit,
-    onRecallMemoriesClick: () -> Unit
+    onRecallMemoriesClick: () -> Unit,
+    hideControls: Boolean = false
 ) {
     val hudScale by viewModel.hudScale.collectAsState()
     val controlScale by viewModel.controlButtonScale.collectAsState()
@@ -49,23 +50,25 @@ fun GameHudOverlay(
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         // --- 1. TOP CENTER PAUSE BUTTON ---
-        Box(
-            modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
-            contentAlignment = Alignment.TopCenter
-        ) {
-            IconButton(
-                onClick = onPauseClick,
-                modifier = Modifier
-                    .size(44.dp)
-                    .background(SurfaceDark.copy(alpha = 0.6f), CircleShape)
-                    .border(1.dp, OutlineGray.copy(alpha = 0.5f), CircleShape)
+        if (!hideControls) {
+            Box(
+                modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter),
+                contentAlignment = Alignment.TopCenter
             ) {
-                Icon(
-                    Icons.Filled.Settings,
-                    tint = RadianceWhite,
-                    contentDescription = "Pause Game",
-                    modifier = Modifier.size(20.dp)
-                )
+                IconButton(
+                    onClick = onPauseClick,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(SurfaceDark.copy(alpha = 0.6f), CircleShape)
+                        .border(1.dp, OutlineGray.copy(alpha = 0.5f), CircleShape)
+                ) {
+                    Icon(
+                        Icons.Filled.Settings,
+                        tint = RadianceWhite,
+                        contentDescription = "Pause Game",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
@@ -249,174 +252,176 @@ fun GameHudOverlay(
 
         // --- 4. BOTTOM LEFT DPAD (MOVE CONTROLS) ---
         // Scaled by controlScale dynamically!
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF5A524A).copy(alpha = 0.9f))
-                .border(3.dp, Color(0xFF38302A), RoundedCornerShape(12.dp))
-                .padding(6.dp)
-        ) {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp * controlScale),
-                horizontalAlignment = Alignment.CenterHorizontally
+        if (!hideControls) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF5A524A).copy(alpha = 0.9f))
+                    .border(3.dp, Color(0xFF38302A), RoundedCornerShape(12.dp))
+                    .padding(6.dp)
             ) {
-                // Interact Button
-                HoldButtonWidget(
-                    icon = {
-                        Icon(
-                            Icons.Filled.Star,
-                            contentDescription = "Interact",
-                            modifier = Modifier.size(20.dp * controlScale),
-                            tint = BlightGold
-                        )
-                    },
-                    onTick = { active ->
-                        viewModel.movingInteract = active
-                        if (active) {
-                            viewModel.onOracleInteract()
-                        }
-                    },
-                    size = 72.dp * controlScale,
-                    height = 32.dp * controlScale
-                )
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp * controlScale),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Interact Button
+                    HoldButtonWidget(
+                        icon = {
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = "Interact",
+                                modifier = Modifier.size(20.dp * controlScale),
+                                tint = BlightGold
+                            )
+                        },
+                        onTick = { active ->
+                            viewModel.movingInteract = active
+                            if (active) {
+                                viewModel.onOracleInteract()
+                            }
+                        },
+                        size = 72.dp * controlScale,
+                        height = 32.dp * controlScale
+                    )
 
-                // Left/Right Row
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp * controlScale)) {
-                    HoldButtonWidget(
-                        icon = {
-                            Icon(
-                                Icons.Filled.ArrowBack,
-                                contentDescription = "Move Left",
-                                modifier = Modifier.size(20.dp * controlScale),
-                                tint = BlightGold
-                            )
-                        },
-                        onTick = { active ->
-                            viewModel.movingLeft = active
-                        },
-                        size = 34.dp * controlScale,
-                        height = 34.dp * controlScale
-                    )
-                    HoldButtonWidget(
-                        icon = {
-                            Icon(
-                                Icons.Filled.ArrowForward,
-                                contentDescription = "Move Right",
-                                modifier = Modifier.size(20.dp * controlScale),
-                                tint = BlightGold
-                            )
-                        },
-                        onTick = { active ->
-                            viewModel.movingRight = active
-                        },
-                        size = 34.dp * controlScale,
-                        height = 34.dp * controlScale
-                    )
+                    // Left/Right Row
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp * controlScale)) {
+                        HoldButtonWidget(
+                            icon = {
+                                Icon(
+                                    Icons.Filled.ArrowBack,
+                                    contentDescription = "Move Left",
+                                    modifier = Modifier.size(20.dp * controlScale),
+                                    tint = BlightGold
+                                )
+                            },
+                            onTick = { active ->
+                                viewModel.movingLeft = active
+                            },
+                            size = 34.dp * controlScale,
+                            height = 34.dp * controlScale
+                        )
+                        HoldButtonWidget(
+                            icon = {
+                                Icon(
+                                    Icons.Filled.ArrowForward,
+                                    contentDescription = "Move Right",
+                                    modifier = Modifier.size(20.dp * controlScale),
+                                    tint = BlightGold
+                                )
+                            },
+                            onTick = { active ->
+                                viewModel.movingRight = active
+                            },
+                            size = 34.dp * controlScale,
+                            height = 34.dp * controlScale
+                        )
+                    }
                 }
             }
-        }
 
-        // --- 5. BOTTOM RIGHT ACTIONS PAD ---
-        // Jump, Slash, Dash, Memory Power
-        // Scaled by controlScale dynamically!
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color(0xFF5A524A).copy(alpha = 0.9f))
-                .border(3.dp, Color(0xFF38302A), RoundedCornerShape(12.dp))
-                .padding(6.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp * controlScale),
-                verticalAlignment = Alignment.CenterVertically
+            // --- 5. BOTTOM RIGHT ACTIONS PAD ---
+            // Jump, Slash, Dash, Memory Power
+            // Scaled by controlScale dynamically!
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFF5A524A).copy(alpha = 0.9f))
+                    .border(3.dp, Color(0xFF38302A), RoundedCornerShape(12.dp))
+                    .padding(6.dp)
             ) {
-                // Mask Shard Blast (Top capability)
-                ActionButtonWidget(
-                    icon = {
-                        Icon(
-                            Icons.Filled.Star,
-                            contentDescription = "Mask Shard Blast",
-                            modifier = Modifier.size(18.dp * controlScale),
-                            tint = RadianceWhite
-                        )
-                    },
-                    activeColor = RadianceWhite,
-                    onClick = {
-                        viewModel.useMaskShardBlast()
-                    },
-                    size = 36.dp * controlScale
-                )
-
-                // Light Attack Button
-                ActionButtonWidget(
-                    icon = {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                "🗡️",
-                                fontSize = (14.sp.value * controlScale).sp
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp * controlScale),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Mask Shard Blast (Top capability)
+                    ActionButtonWidget(
+                        icon = {
+                            Icon(
+                                Icons.Filled.Star,
+                                contentDescription = "Mask Shard Blast",
+                                modifier = Modifier.size(18.dp * controlScale),
+                                tint = RadianceWhite
                             )
-                        }
-                    },
-                    activeColor = VitalityRed,
-                    onClick = {
-                        viewModel.onLightAttack()
-                    },
-                    size = 36.dp * controlScale
-                )
+                        },
+                        activeColor = RadianceWhite,
+                        onClick = {
+                            viewModel.useMaskShardBlast()
+                        },
+                        size = 36.dp * controlScale
+                    )
 
-                // Heavy / Parry Button
-                ActionButtonWidget(
-                    icon = {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                "🛡️",
-                                fontSize = (14.sp.value * controlScale).sp
+                    // Light Attack Button
+                    ActionButtonWidget(
+                        icon = {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    "🗡️",
+                                    fontSize = (14.sp.value * controlScale).sp
+                                )
+                            }
+                        },
+                        activeColor = VitalityRed,
+                        onClick = {
+                            viewModel.onLightAttack()
+                        },
+                        size = 36.dp * controlScale
+                    )
+
+                    // Heavy / Parry Button
+                    ActionButtonWidget(
+                        icon = {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    "🛡️",
+                                    fontSize = (14.sp.value * controlScale).sp
+                                )
+                            }
+                        },
+                        activeColor = BlightGold,
+                        onClick = {
+                            viewModel.onHeavyAttack()
+                        },
+                        size = 36.dp * controlScale
+                    )
+
+                    // Jump Button
+                    ActionButtonWidget(
+                        icon = {
+                            Icon(
+                                Icons.Filled.KeyboardArrowUp,
+                                contentDescription = "Jump",
+                                modifier = Modifier.size(20.dp * controlScale),
+                                tint = EchoesBlue
                             )
-                        }
-                    },
-                    activeColor = BlightGold,
-                    onClick = {
-                        viewModel.onHeavyAttack()
-                    },
-                    size = 36.dp * controlScale
-                )
+                        },
+                        activeColor = EchoesBlue,
+                        onClick = {
+                            viewModel.handleJump()
+                        },
+                        size = 36.dp * controlScale
+                    )
 
-                // Jump Button
-                ActionButtonWidget(
-                    icon = {
-                        Icon(
-                            Icons.Filled.KeyboardArrowUp,
-                            contentDescription = "Jump",
-                            modifier = Modifier.size(20.dp * controlScale),
-                            tint = EchoesBlue
-                        )
-                    },
-                    activeColor = EchoesBlue,
-                    onClick = {
-                        viewModel.handleJump()
-                    },
-                    size = 36.dp * controlScale
-                )
+                    // Satchel Throw
+                    ActionButtonWidget(
+                        icon = {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    "🎒",
+                                    fontSize = (14.sp.value * controlScale).sp
+                                )
+                            }
+                        },
+                        activeColor = Color(0xFF8D6E63),
+                        onClick = {
+                            viewModel.onSatchelThrow()
+                        },
+                        size = 36.dp * controlScale
+                    )
 
-                // Satchel Throw
-                ActionButtonWidget(
-                    icon = {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                "🎒",
-                                fontSize = (14.sp.value * controlScale).sp
-                            )
-                        }
-                    },
-                    activeColor = Color(0xFF8D6E63),
-                    onClick = {
-                        viewModel.onSatchelThrow()
-                    },
-                    size = 36.dp * controlScale
-                )
-
+                }
             }
         }
     }

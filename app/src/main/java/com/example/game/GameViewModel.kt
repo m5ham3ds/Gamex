@@ -24,42 +24,10 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 import kotlin.math.abs
 
-enum class GameState {
-    MENU,
-    PLAYING,
-    PAUSED,
-    ORACLE_CONVERSATION,
-    GAME_OVER,
-    VICTORY,
-    CHRONICLES
-}
-
-data class Projectile(
-    val x: Float,
-    val y: Float,
-    val vx: Float,
-    val vy: Float,
-    val radius: Float = 6f,
-    val isPlayerOwned: Boolean = false
-)
-
-data class Particle(
-    val x: Float,
-    val y: Float,
-    val vx: Float,
-    val vy: Float,
-    val color: androidx.compose.ui.graphics.Color,
-    val alpha: Float = 1.0f,
-    val size: Float = 4f,
-    val life: Int = 30 // frames
-)
-
-data class OracleRelic(
-    val x: Float,
-    val y: Float,
-    val radius: Float = 24f,
-    val isUsed: Boolean = false
-)
+import com.example.game.core.GameState
+import com.example.game.world.Projectile
+import com.example.game.world.Particle
+import com.example.game.world.OracleRelic
 
 class GameViewModel : ViewModel() {
 
@@ -742,6 +710,7 @@ class GameViewModel : ViewModel() {
 
     // --- TEMPLE RELIC INTERACTION & CHRONICLES ---
     fun onOracleInteract() {
+        if (_gameState.value == GameState.ORACLE_CONVERSATION) return
         val p = _player.value
         val r = _relic.value ?: return
 

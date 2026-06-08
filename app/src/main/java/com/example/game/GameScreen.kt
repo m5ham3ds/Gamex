@@ -30,6 +30,11 @@ import com.example.game.enemy.EnemyType
 import com.example.game.hud.GameHudOverlay
 import com.example.game.menu.*
 import com.example.game.player.Direction
+import com.example.game.player.drawPlayer
+import com.example.game.core.GameState
+import com.example.game.world.Particle
+import com.example.game.world.Projectile
+import com.example.game.world.OracleRelic
 import com.example.ui.theme.*
 
 @Composable
@@ -80,12 +85,23 @@ fun GameScreen(
                     )
 
                     // HUD controls overlay (D-pad & stats)
-                    GameHudOverlay(
-                        viewModel = viewModel,
-                        player = player,
-                        onPauseClick = { viewModel.pauseGame() },
-                        onRecallMemoriesClick = { viewModel.upgradeVitality() }
-                    )
+                    if (state == GameState.PLAYING) {
+                        GameHudOverlay(
+                            viewModel = viewModel,
+                            player = player,
+                            onPauseClick = { viewModel.pauseGame() },
+                            onRecallMemoriesClick = { viewModel.upgradeVitality() }
+                        )
+                    } else {
+                        // Show ONLY the top bars (vitality, memory, etc), NOT the interactive D-pad
+                        GameHudOverlay(
+                            viewModel = viewModel,
+                            player = player,
+                            onPauseClick = { viewModel.pauseGame() },
+                            onRecallMemoriesClick = { viewModel.upgradeVitality() },
+                            hideControls = true
+                        )
+                    }
 
                     // Popups modals
                     when (state) {
@@ -158,9 +174,9 @@ fun GameViewCanvas(
     player: com.example.game.player.PlayerState,
     region: com.example.game.world.GameRegion,
     enemies: List<com.example.game.enemy.Enemy>,
-    projectiles: List<com.example.game.Projectile>,
-    particles: List<com.example.game.Particle>,
-    relic: com.example.game.OracleRelic?,
+    projectiles: List<com.example.game.world.Projectile>,
+    particles: List<com.example.game.world.Particle>,
+    relic: com.example.game.world.OracleRelic?,
     isSlashing: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -336,88 +352,7 @@ fun GameViewCanvas(
             }
 
             // --- DRAW PLAYER VESSEL (The Silent Wanderer) ---
-            val px = player.x * scaleX
-            val py = player.y * scaleY
-            val pr = player.radius * scaleX
-
-            // Black Coat / Body
-            drawRoundRect(
-                color = Color(0xFF141A22), // SurfaceDark
-                topLeft = Offset(px - pr, py - pr),
-                size = Size(pr * 2, pr * 2.5f),
-                cornerRadius = CornerRadius(4 * scaleX, 4 * scaleY)
-            )
-            // Coat white trims
-            drawLine(
-                color = RadianceWhite,
-                start = Offset(px - pr, py - pr),
-                end = Offset(px - pr, py + pr * 1.5f),
-                strokeWidth = 2.dp.toPx()
-            )
-
-            // Satchels (swinging based on velocity)
-            val swayX = -(player.vx * 0.5f).coerceIn(-5f, 5f) * scaleX
-            drawRoundRect(
-                color = Color(0xFF4A3A2C),
-                topLeft = Offset(px + pr * 0.4f + swayX, py + pr * 0.5f),
-                size = Size(8 * scaleX, 10 * scaleY),
-                cornerRadius = CornerRadius(2 * scaleX, 2 * scaleY)
-            )
-
-            // Porcelain White Mask
-            drawCircle(
-                color = Color(0xFFF6F6F6),
-                radius = pr * 0.7f,
-                center = Offset(px, py - pr * 0.5f)
-            )
-
-            // Expressive bright white eyes looking in the facing direction (slits)
-            val eyeLookOffset = if (player.direction == Direction.LEFT) -3f * scaleX else 3f * scaleX
-            val eyeX1 = px + eyeLookOffset - 4f * scaleX
-            val eyeX2 = px + eyeLookOffset + 4f * scaleX
-            val eyeY = py - pr * 0.5f - 1f * scaleY
-
-            drawLine(color = Color.Black, start = Offset(eyeX1 - 2*scaleX, eyeY), end = Offset(eyeX1 + 2*scaleX, eyeY), strokeWidth = 2.dp.toPx())
-            drawLine(color = Color.Black, start = Offset(eyeX2 - 2*scaleX, eyeY), end = Offset(eyeX2 + 2*scaleX, eyeY), strokeWidth = 2.dp.toPx())
-            drawCircle(color = RadianceWhite, radius = 1.5f * scaleX, center = Offset(eyeX1, eyeY))
-            drawCircle(color = RadianceWhite, radius = 1.5f * scaleX, center = Offset(eyeX2, eyeY))
-
-            // Black Wide Hat
-            val pathHat = androidx.compose.ui.graphics.Path().apply {
-                moveTo(px - pr * 1.5f, py - pr * 1.1f)
-                lineTo(px + pr * 1.5f, py - pr * 1.1f)
-                lineTo(px + pr * 0.8f, py - pr * 1.6f)
-                lineTo(px - pr * 0.8f, py - pr * 1.6f)
-                close()
-            }
-            drawPath(pathHat, color = VoidPrimary)
-
-            // --- MEMORY SHIELD AURA ---
-            if (player.soulShieldActive) {
-                drawCircle(
-                    color = RadianceWhite.copy(alpha = 0.6f),
-                    radius = pr * 1.8f,
-                    center = Offset(px, py),
-                    style = Stroke(width = 2.dp.toPx())
-                )
-            }
-
-            // --- SWORD SLASH ARC ANIMATION ---
-            if (isSlashing) {
-                val slashDir = if (player.direction == Direction.LEFT) -1f else 1f
-                val slashPath = androidx.compose.ui.graphics.Path().apply {
-                    moveTo(px, py - 20 * scaleY)
-                    quadraticBezierTo(
-                        px + 50 * slashDir * scaleX, py,
-                        px, py + 20 * scaleY
-                    )
-                }
-                drawPath(
-                    path = slashPath,
-                    color = RadianceWhite,
-                    style = Stroke(width = 3.dp.toPx())
-                )
-            }
+            drawPlayer(player, scaleX, scaleY, isSlashing)
         }
     }
 }

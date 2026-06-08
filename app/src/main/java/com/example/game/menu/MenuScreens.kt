@@ -401,6 +401,7 @@ fun OracleConversationScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xF5060A0D))
+            .clickable(enabled = false) {}
     ) {
         AshParticles()
 
