@@ -32,6 +32,8 @@ import com.example.game.menu.*
 import com.example.game.player.Direction
 import com.example.game.player.drawPlayer
 import com.example.game.enemy.drawEnemy
+import com.example.game.temple.OracleConversationScreen
+import com.example.game.temple.AshParticles
 import com.example.game.core.GameState
 import com.example.game.world.Particle
 import com.example.game.world.Projectile

@@ -336,19 +336,19 @@ fun GameHudOverlay(
                     horizontalArrangement = Arrangement.spacedBy(6.dp * controlScale),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Mask Shard Blast (Top capability)
+                    // Shoot Gun
                     ActionButtonWidget(
                         icon = {
-                            Icon(
-                                Icons.Filled.Star,
-                                contentDescription = "Mask Shard Blast",
-                                modifier = Modifier.size(18.dp * controlScale),
-                                tint = RadianceWhite
-                            )
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(
+                                    "🔫",
+                                    fontSize = (14.sp.value * controlScale).sp
+                                )
+                            }
                         },
                         activeColor = RadianceWhite,
                         onClick = {
-                            viewModel.useMaskShardBlast()
+                            viewModel.onShootGun()
                         },
                         size = 36.dp * controlScale
                     )

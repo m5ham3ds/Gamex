@@ -613,22 +613,26 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    fun useMaskShardBlast() {
+    fun onShootGun() {
         val p = _player.value
-        if (p.memoryFragments >= 3) {
-            _player.value = p.copy(
-                memoryFragments = p.memoryFragments - 3,
-                forgetfulness = p.forgetfulness + 4f
-            )
-            triggerSparks(p.x, p.y, RadianceWhite)
-            
-            // Massive AOE damage
-            _enemies.value.forEachIndexed { idx, enemy ->
-                val dist = abs(enemy.x - p.x) + abs(enemy.y - p.y)
-                if (dist < 250f) {
-                    damageEnemy(idx, 100f) // Mask Shard immense damage
-                }
+        val cost = 10f
+        if (p.energy >= cost || p.memoryFragments >= 1) { // It can use energy OR memory fragments
+            if (p.energy >= cost) {
+                _player.value = p.copy(energy = p.energy - cost)
+            } else {
+                _player.value = p.copy(memoryFragments = p.memoryFragments - 1)
             }
+            
+            val vx = if (p.direction == Direction.LEFT) -20f else 20f
+            val pxOffset = if (p.direction == Direction.LEFT) -p.radius * 1.5f else p.radius * 1.5f
+            val pyOffset = p.radius * 0.6f
+            
+            val list = _projectiles.value.toMutableList()
+            list.add(Projectile(p.x + pxOffset, p.y + pyOffset, vx, 0f, radius = 5f, isPlayerOwned = true))
+            _projectiles.value = list
+
+            // Muzzle flash
+            triggerSparks(p.x + pxOffset, p.y + pyOffset, RadianceWhite)
         }
     }
 
