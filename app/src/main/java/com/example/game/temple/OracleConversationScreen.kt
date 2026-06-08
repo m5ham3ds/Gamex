@@ -7,6 +7,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowRight
@@ -56,7 +58,8 @@ fun OracleConversationScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -98,35 +101,38 @@ fun OracleConversationScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     choices.forEachIndexed { idx, option ->
-                        val isSelected = selectedIndex == idx
-                        val choiceBorderColor = if (isSelected) BlightGold else OutlineGray.copy(alpha = 0.4f)
-                        val choiceBgColor = if (isSelected) Color(0xFF232C33) else SurfaceDark.copy(alpha = 0.8f)
-                        val textColor = if (isSelected) BlightGold else OnSurfaceLight
+                        if (option.isNotBlank()) {
+                            val isSelected = selectedIndex == idx
+                            val choiceBorderColor = if (isSelected) BlightGold else OutlineGray.copy(alpha = 0.4f)
+                            val choiceBgColor = if (isSelected) Color(0xFF232C33) else SurfaceDark.copy(alpha = 0.8f)
+                            val textColor = if (isSelected) BlightGold else OnSurfaceLight
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .clickable {
-                                    if (feedback == null) {
-                                        viewModel.selectOracleChoice(idx)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .defaultMinSize(minHeight = 48.dp)
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .clickable {
+                                        if (feedback == null) {
+                                            viewModel.selectOracleChoice(idx)
+                                        }
                                     }
+                                    .background(choiceBgColor)
+                                    .border(1.dp, choiceBorderColor, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "${idx + 1}.  $option",
+                                    color = textColor,
+                                    fontSize = 13.sp,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isSelected) {
+                                    Text("✦", color = BlightGold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 8.dp))
                                 }
-                                .background(choiceBgColor)
-                                .border(1.dp, choiceBorderColor, RoundedCornerShape(6.dp))
-                                .padding(horizontal = 16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "${idx + 1}.  $option",
-                                color = textColor,
-                                fontSize = 13.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                            if (isSelected) {
-                                Text("✦", color = BlightGold, fontWeight = FontWeight.Bold)
                             }
                         }
                     }

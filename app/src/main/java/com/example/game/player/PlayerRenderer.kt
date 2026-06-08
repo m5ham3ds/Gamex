@@ -55,18 +55,18 @@ fun DrawScope.drawPlayer(
         cornerRadius = CornerRadius(2 * scaleX, 2 * scaleY)
     )
 
-    // 3.5 Back Arm & Pistol
+    // 3.5 Back Arm & Pistol (Silver so it's very visible)
     val armPivotY = py + pr * 0.2f
-    val backHandX = px - faceDir * pr * 0.6f
-    val backHandY = armPivotY + pr * 0.6f
+    val backHandX = px - faceDir * pr * 0.8f
+    val backHandY = armPivotY + pr * 0.5f
     // Back arm
-    drawLine(color = Color(0xFF0F141A), start = Offset(px, armPivotY), end = Offset(backHandX, backHandY), strokeWidth = 3.dp.toPx())
-    // Pistol body
-    drawRoundRect(color = Color(0xFF7A4E3E), topLeft = Offset(backHandX - 3f * scaleX, backHandY - 2f * scaleY), size = Size(8f * scaleX, 5f * scaleY), cornerRadius = CornerRadius(1f, 1f))
+    drawLine(color = Color(0xFF2C3E50), start = Offset(px, armPivotY), end = Offset(backHandX, backHandY), strokeWidth = 3.dp.toPx())
+    // Pistol body (Silver/Metallic)
+    drawRoundRect(color = Color(0xFFB0BEC5), topLeft = Offset(backHandX - 4f * scaleX, backHandY - 3f * scaleY), size = Size(10f * scaleX, 6f * scaleY), cornerRadius = CornerRadius(2f, 2f))
     // Pistol barrel
-    drawLine(color = Color(0xFFCFC7B8), start = Offset(backHandX, backHandY), end = Offset(backHandX + 12f * scaleX * faceDir, backHandY - 1f * scaleY), strokeWidth = 1.5f.dp.toPx())
+    drawLine(color = Color(0xFF90A4AE), start = Offset(backHandX, backHandY - 1f * scaleY), end = Offset(backHandX + 16f * scaleX * faceDir, backHandY - 1f * scaleY), strokeWidth = 3.dp.toPx())
     // Glove back
-    drawCircle(color = Color(0xFF1A1A1A), radius = 2.5f * scaleX, center = Offset(backHandX, backHandY))
+    drawCircle(color = Color(0xFF1A1A1A), radius = 3f * scaleX, center = Offset(backHandX, backHandY))
 
     // 4. Porcelain White Mask
     drawCircle(
@@ -107,36 +107,48 @@ fun DrawScope.drawPlayer(
     }
 
     // 7. Front Arm & Sword
-    val frontHandX = px + faceDir * pr * 1.3f
-    val frontHandY = armPivotY + pr * 0.5f
+    val slashAnim = if (isSlashing) 1f else 0f
+    
+    // Animate hand throwing forward and down during slash
+    val frontHandX = px + faceDir * pr * (1.3f + slashAnim * 0.8f)
+    val frontHandY = armPivotY + pr * (0.5f + slashAnim * 0.5f)
+    
     // Front arm
     drawLine(
-        color = Color(0xFF141A22),
+        color = Color(0xFF1B2631),
         start = Offset(px + faceDir * pr * 0.5f, armPivotY),
         end = Offset(frontHandX, frontHandY),
-        strokeWidth = 3.dp.toPx()
+        strokeWidth = 4.dp.toPx()
     )
+    
+    // Calculate sword angle based on slashing
+    // Normal: Pointing slightly up and forward. Slashing: Pointing down and forward.
+    val swordTipX = frontHandX + faceDir * pr * (1.8f - slashAnim * 0.5f)
+    val swordTipY = frontHandY - pr * (1.8f - slashAnim * 3.5f) // huge swing down
+    val swordBaseX = frontHandX + faceDir * pr * (0.3f - slashAnim * 0.1f)
+    val swordBaseY = frontHandY - pr * (0.3f - slashAnim * 0.6f)
+
     // Sword handle
-    drawLine(color = Color(0xFF8D6E63), start = Offset(frontHandX, frontHandY), end = Offset(frontHandX + faceDir * pr * 0.5f, frontHandY - pr * 0.5f), strokeWidth = 2.dp.toPx())
+    drawLine(color = Color(0xFF5D4037), start = Offset(frontHandX, frontHandY), end = Offset(swordBaseX, swordBaseY), strokeWidth = 3.dp.toPx())
     // Sword blade
-    drawLine(color = RadianceWhite, start = Offset(frontHandX + faceDir * pr * 0.5f, frontHandY - pr * 0.5f), end = Offset(frontHandX + faceDir * pr * 1.8f, frontHandY - pr * 1.8f), strokeWidth = 2.dp.toPx())
+    drawLine(color = RadianceWhite, start = Offset(swordBaseX, swordBaseY), end = Offset(swordTipX, swordTipY), strokeWidth = 3.dp.toPx())
     // Front glove
-    drawCircle(color = Color(0xFF1A1A1A), radius = 2.5f * scaleX, center = Offset(frontHandX, frontHandY))
+    drawCircle(color = Color(0xFF1A1A1A), radius = 3f * scaleX, center = Offset(frontHandX, frontHandY))
 
     // --- SWORD SLASH ARC ANIMATION ---
     if (isSlashing) {
         val slashDir = if (player.direction == Direction.LEFT) -1f else 1f
-        val slashPath = Path().apply {
-            moveTo(px, py - 20 * scaleY)
+        val path = Path().apply {
+            moveTo(px + slashDir * pr * 0.5f, py - pr * 1.5f)
             quadraticBezierTo(
-                px + 50 * slashDir * scaleX, py,
-                px, py + 20 * scaleY
+                px + slashDir * pr * 3.5f, py - pr,
+                px + slashDir * pr * 2.5f, py + pr * 1.5f
             )
         }
         drawPath(
-            path = slashPath,
-            color = RadianceWhite,
-            style = Stroke(width = 3.dp.toPx())
+            path = path,
+            color = RadianceWhite.copy(alpha = 0.8f),
+            style = Stroke(width = 4.dp.toPx())
         )
     }
 }
