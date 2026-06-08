@@ -1,0 +1,8 @@
+{
+  "name": "Mask of Light",
+  "description": "A Metroidvania Dark Gothic 2D game where you play as a mysterious masked hero in the broken world of Erygra, balancing power and memory.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
