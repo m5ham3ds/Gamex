@@ -25,6 +25,9 @@ import java.util.UUID
 import kotlin.math.abs
 
 import com.example.game.core.GameState
+import com.example.game.core.GameConfig
+import com.example.game.engine.*
+import com.example.game.player.PlayerController
 import com.example.game.world.Projectile
 import com.example.game.world.Particle
 import com.example.game.world.OracleRelic
@@ -257,112 +260,9 @@ class GameViewModel : ViewModel() {
         val p = _player.value
         val region = _currentRegion.value
 
-        // Moving factors
-        var vx = p.vx
-        if (movingLeft) {
-            vx = -6f
-        } else if (movingRight) {
-            vx = 6f
-        } else {
-            vx *= 0.8f // drag friction
-            if (abs(vx) < 0.15f) vx = 0f
-        }
-
-        // Apply constant gravity
-        var vy = p.vy + 0.65f
-        if (vy > 14f) vy = 14f // terminal velocity clamp
-
-        // Update positions
-        var nextX = p.x + vx
-        var nextY = p.y + vy
-
-        // Collision constraints with boundaries
-        if (nextY > region.height + 60f) {
-            // Fell out of bounds / Abyss Void
-            decreasePlayerHp(25f)
-            // Respawn player at nearest spawn node
-            nextX = region.spawnXLeft
-            nextY = 200f
-            vy = 0f
-            vx = 0f
-        }
-
-        // --- PLATFORM COLLISIONS ---
-        var grounded = false
-        region.platforms.forEach { platform ->
-            // Overlapping on X-axis check
-            val playerLeft = nextX - p.radius
-            val playerRight = nextX + p.radius
-            val platLeft = platform.x
-            val platRight = platform.x + platform.width
-
-            if (playerRight > platLeft && playerLeft < platRight) {
-                // Moving down check (landing)
-                val feetY = p.y + p.radius
-                if (feetY <= platform.y && nextY + p.radius >= platform.y) {
-                    if (platform.isBouncy) {
-                        vy = -18f // mega jump bounce pad!
-                        // Spawn bounce particles
-                        triggerBounceSparks(nextX, platform.y)
-                    } else {
-                        nextY = platform.y - p.radius
-                        vy = 0f
-                        grounded = true
-                    }
-                }
-            }
-        }
-
-        // Map transitions (If player is at left boundary or right boundary)
-        if (nextX < 40f) {
-            if (region.leftNodeRegionId != null) {
-                loadRegion(region.leftNodeRegionId, enterFromLeft = false)
-                return
-            } else {
-                nextX = 40f
-            }
-        } else if (nextX > region.width - 40f) {
-            if (region.rightNodeRegionId != null) {
-                loadRegion(region.rightNodeRegionId, enterFromLeft = true)
-                return
-            } else {
-                nextX = region.width - 40f
-            }
-        }
-
-        // --- HAZARD COLLISION ---
-        region.hazards.forEach { hazard ->
-            val pLeft = nextX - p.radius
-            val pRight = nextX + p.radius
-            val pTop = nextY - p.radius
-            val pBottom = nextY + p.radius
-
-            val hLeft = hazard.x
-            val hRight = hazard.x + hazard.width
-            val hTop = hazard.y
-            val hBottom = hazard.y + hazard.height
-
-            if (pRight > hLeft && pLeft < hRight && pBottom > hTop && pTop < hBottom) {
-                // Hazard overlap! Take damage & bounce player
-                decreasePlayerHp(hazard.damage)
-                vy = -10f
-                vx = if (p.direction == Direction.LEFT) 6f else -6f // recoil bounce
-                // Spawn warning sparks
-                triggerSparks(nextX, nextY, VitalityRed)
-            }
-        }
-
-        val dir = if (vx < 0) Direction.LEFT else if (vx > 0) Direction.RIGHT else p.direction
-
-        // Update player model
-        _player.value = p.copy(
-            x = nextX,
-            y = nextY,
-            vx = vx,
-            vy = vy,
-            direction = dir,
-            isGrounded = grounded
-        )
+        // Use PhysicsEngine for player movement
+        val nextPlayer = PhysicsEngine.updatePlayer(p, region, movingLeft, movingRight)
+        _player.value = nextPlayer
 
         // --- UPDATE ENEMIES AI & PHYSICS ---
         val curEnemies = _enemies.value.map { enemy ->
@@ -459,27 +359,17 @@ class GameViewModel : ViewModel() {
 
             if (keep) {
                 if (proj.isPlayerOwned) {
-                    // Collide with enemies
-                    var hitIndex = -1
                     _enemies.value.forEachIndexed { idx, enemy ->
-                        val dx = nx - enemy.x
-                        val dy = ny - enemy.y
-                        if (dx*dx + dy*dy < (enemy.radius + proj.radius) * (enemy.radius + proj.radius)) {
-                            hitIndex = idx
+                        if (CombatEngine.isProjectileHitting(proj, enemy.x, enemy.y, enemy.radius)) {
+                            damageEnemy(idx, 20f)
                             keep = false
                         }
                     }
-                    if (hitIndex != -1) {
-                        damageEnemy(hitIndex, 20f)
-                    }
                 } else {
-                    // Collide with player
-                    val dx = nx - p.x
-                    val dy = ny - p.y
-                    if (dx*dx + dy*dy < (p.radius + proj.radius) * (p.radius + proj.radius)) {
+                    if (CombatEngine.isProjectileHitting(proj, p.x, p.y, p.radius)) {
                         decreasePlayerHp(12f)
                         keep = false
-                        triggerSparks(p.x, p.y, VitalityRed)
+                        _particles.value += ParticleEngine.createSparks(p.x, p.y, VitalityRed)
                     }
                 }
             }
@@ -491,14 +381,7 @@ class GameViewModel : ViewModel() {
         _projectiles.value = pList
 
         // --- UPDATE PARTICLES LIFE ---
-        _particles.value = _particles.value.map { part ->
-            part.copy(
-                x = part.x + part.vx,
-                y = part.y + part.vy,
-                alpha = part.alpha * 0.95f,
-                life = part.life - 1
-            )
-        }.filter { it.life > 0 }
+        _particles.value = ParticleEngine.updateParticles(_particles.value)
     }
 
     private fun triggerBounceSparks(x: Float, y: Float) {
@@ -539,24 +422,14 @@ class GameViewModel : ViewModel() {
         _isSlashing.value = true
 
         val p = _player.value
-        val range = 90f
-        
-        // Find if any enemies are within range and directional sight
-        _enemies.value.forEachIndexed { idx, enemy ->
-            val dist = abs(enemy.x - p.x)
-            val isWithinHeightY = abs(enemy.y - p.y) < 50f
-            if (dist < range && isWithinHeightY) {
-                val isLookingAtEnemy = (p.direction == Direction.RIGHT && enemy.x > p.x) ||
-                        (p.direction == Direction.LEFT && enemy.x < p.x)
-                if (isLookingAtEnemy) {
-                    damageEnemy(idx, 15f + (p.level * 2f)) // Light damage
-                }
-            }
+        val hits = CombatEngine.calculateMeleeHit(p, _enemies.value, isHeavy = false)
+        hits.forEach { (index, damage) ->
+            damageEnemy(index, damage + (p.level * 2f))
         }
 
         slashTimeoutJob?.cancel()
         slashTimeoutJob = viewModelScope.launch {
-            delay(120) // Shorter recovery for light attack
+            delay(120)
             _isSlashing.value = false
         }
     }
@@ -566,36 +439,22 @@ class GameViewModel : ViewModel() {
         _isSlashing.value = true
 
         val p = _player.value
-        val range = 120f
-        
-        _enemies.value.forEachIndexed { idx, enemy ->
-            val dist = abs(enemy.x - p.x)
-            val isWithinHeightY = abs(enemy.y - p.y) < 60f
-            if (dist < range && isWithinHeightY) {
-                val isLookingAtEnemy = (p.direction == Direction.RIGHT && enemy.x > p.x) ||
-                        (p.direction == Direction.LEFT && enemy.x < p.x)
-                if (isLookingAtEnemy) {
-                    // Knockback and heavy damage
-                    val pushVx = if (p.direction == Direction.LEFT) -8f else 8f
-                    knockbackEnemy(idx, pushVx, -4f)
-                    damageEnemy(idx, 35f + (p.level * 5f))
-                }
-            }
+        val hits = CombatEngine.calculateMeleeHit(p, _enemies.value, isHeavy = true)
+        hits.forEach { (index, damage) ->
+            val pushVx = if (p.direction == Direction.LEFT) -8f else 8f
+            knockbackEnemy(index, pushVx, -4f)
+            damageEnemy(index, damage + (p.level * 5f))
         }
 
         slashTimeoutJob?.cancel()
         slashTimeoutJob = viewModelScope.launch {
-            delay(300) // Longer recovery for heavy attack
+            delay(300)
             _isSlashing.value = false
         }
     }
 
     fun handleJump() {
-        val p = _player.value
-        if (p.isGrounded) {
-            _player.value = p.copy(vy = -12.5f, isGrounded = false)
-            triggerSparks(p.x, p.y + p.radius, OutlineGray)
-        }
+        _player.value = PlayerController.handleJump(_player.value)
     }
 
     fun onSatchelThrow() {
@@ -615,24 +474,16 @@ class GameViewModel : ViewModel() {
 
     fun onShootGun() {
         val p = _player.value
-        val cost = 10f
-        if (p.energy >= cost || p.memoryFragments >= 1) { // It can use energy OR memory fragments
-            if (p.energy >= cost) {
-                _player.value = p.copy(energy = p.energy - cost)
-            } else {
-                _player.value = p.copy(memoryFragments = p.memoryFragments - 1)
-            }
+        val nextP = PlayerController.useEnergy(p, GameConfig.PISTOL_COST)
+            ?: if (p.memoryFragments >= 1) p.copy(memoryFragments = p.memoryFragments - 1) else null
             
-            val vx = if (p.direction == Direction.LEFT) -20f else 20f
-            val pxOffset = if (p.direction == Direction.LEFT) -p.radius * 1.5f else p.radius * 1.5f
-            val pyOffset = p.radius * 0.6f
+        if (nextP != null) {
+            _player.value = nextP
+            val vx = if (nextP.direction == Direction.LEFT) -20f else 20f
+            val pxOffset = if (nextP.direction == Direction.LEFT) -nextP.radius * 1.5f else nextP.radius * 1.5f
             
-            val list = _projectiles.value.toMutableList()
-            list.add(Projectile(p.x + pxOffset, p.y + pyOffset, vx, 0f, radius = 5f, isPlayerOwned = true))
-            _projectiles.value = list
-
-            // Muzzle flash
-            triggerSparks(p.x + pxOffset, p.y + pyOffset, RadianceWhite)
+            _projectiles.value += Projectile(nextP.x + pxOffset, nextP.y + nextP.radius * 0.6f, vx, 0f, radius = 5f, isPlayerOwned = true)
+            _particles.value += ParticleEngine.createSparks(nextP.x + pxOffset, nextP.y + nextP.radius * 0.6f, RadianceWhite)
         }
     }
 

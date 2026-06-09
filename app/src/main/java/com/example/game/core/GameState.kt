@@ -7,5 +7,9 @@ enum class GameState {
     ORACLE_CONVERSATION,
     GAME_OVER,
     VICTORY,
-    CHRONICLES
+    SETTINGS,
+    CHRONICLES,
+    MAP,
+    INVENTORY,
+    DIALOGUE
 }
