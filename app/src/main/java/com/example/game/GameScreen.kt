@@ -32,6 +32,7 @@ import com.example.game.menu.*
 import com.example.game.player.Direction
 import com.example.game.player.drawPlayer
 import com.example.game.enemy.drawEnemy
+import com.example.game.render.*
 import com.example.game.temple.OracleConversationScreen
 import com.example.game.temple.AshParticles
 import com.example.game.core.GameState
@@ -67,6 +68,27 @@ fun GameScreen(
             }
             GameState.CHRONICLES -> {
                 ChroniclesScreen(onClose = { viewModel.closeChronicles() })
+            }
+            GameState.DIALOGUE -> {
+                // Main playing interface in background
+                Box(modifier = Modifier.fillMaxSize()) {
+                    GameViewCanvas(
+                        player = player,
+                        region = currentRegion,
+                        enemies = enemies,
+                        projectiles = projectiles,
+                        particles = particles,
+                        relic = relic,
+                        isSlashing = isSlashing,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                    
+                    com.example.game.ui.dialogue.DialogueScreen(
+                        line = com.example.game.quest.DialogueLine("Edda", "الورق لا يكذب — لكنه يتعب. هل جئت للمساعدة؟", listOf("نعم", "ليس الآن")),
+                        onChoice = { viewModel.onDialogueChoice(it) },
+                        onDismiss = { viewModel.resumeGame() }
+                    )
+                }
             }
             else -> {
                 // Main playing interface (Canvas background & overlays)
@@ -183,22 +205,23 @@ fun GameViewCanvas(
     isSlashing: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val camX by CameraSystem.cameraX
+    val camY by CameraSystem.cameraY
+
     Canvas(modifier = modifier) {
         val scaleX = size.width / 1600f
         val scaleY = size.height / 800f
 
         clipRect {
-            // Draw background ambient grid lines
-            drawRect(
-                brush = Brush.verticalGradient(
-                    colors = listOf(Color(region.bgHex), Color(0xFF020406))
-                )
+            // Draw Parallax Background
+            ParallaxBackground.drawParallax(
+                this, camX, camY, size.width, size.height, Color(region.bgHex)
             )
 
             // --- DRAW RELIC / TEMPLE PORTAL PILLAR ---
             relic?.let { r ->
-                val rx = r.x * scaleX
-                val ry = r.y * scaleY
+                val rx = (r.x - camX) * scaleX
+                val ry = (r.y - camY) * scaleY
                 val radius = r.radius * scaleX
 
                 // Base pillar stone
@@ -224,8 +247,8 @@ fun GameViewCanvas(
 
             // --- DRAW PLATFORMS ---
             region.platforms.forEach { platform ->
-                val px = platform.x * scaleX
-                val py = platform.y * scaleY
+                val px = (platform.x - camX) * scaleX
+                val py = (platform.y - camY) * scaleY
                 val pWidth = platform.width * scaleX
                 val pHeight = platform.height * scaleY
 
@@ -251,8 +274,8 @@ fun GameViewCanvas(
 
             // --- DRAW HAZARDS (Crimson spikes or magma) ---
             region.hazards.forEach { hazard ->
-                val hx = hazard.x * scaleX
-                val hy = hazard.y * scaleY
+                val hx = (hazard.x - camX) * scaleX
+                val hy = (hazard.y - camY) * scaleY
                 val hWidth = hazard.width * scaleX
                 val hHeight = hazard.height * scaleY
 
@@ -274,13 +297,14 @@ fun GameViewCanvas(
 
             // --- DRAW ENEMIES ---
             enemies.forEach { enemy ->
-                drawEnemy(enemy, scaleX, scaleY)
+                val enemyWithOffset = enemy.copy(x = enemy.x - camX, y = enemy.y - camY)
+                drawEnemy(enemyWithOffset, scaleX, scaleY)
             }
 
             // --- DRAW PROJECTILES ---
             projectiles.forEach { proj ->
-                val px = proj.x * scaleX
-                val py = proj.y * scaleY
+                val px = (proj.x - camX) * scaleX
+                val py = (proj.y - camY) * scaleY
                 val pr = proj.radius * scaleX
 
                 val color = if (proj.isPlayerOwned) EchoesBlue else VitalityRed
@@ -289,8 +313,8 @@ fun GameViewCanvas(
 
             // --- DRAW PARTICLES ---
             particles.forEach { part ->
-                val px = part.x * scaleX
-                val py = part.y * scaleY
+                val px = (part.x - camX) * scaleX
+                val py = (part.y - camY) * scaleY
                 val size = part.size * scaleX
 
                 drawRect(
@@ -301,7 +325,8 @@ fun GameViewCanvas(
             }
 
             // --- DRAW PLAYER VESSEL (The Silent Wanderer) ---
-            drawPlayer(player, scaleX, scaleY, isSlashing)
+            val playerWithOffset = player.copy(x = player.x - camX, y = player.y - camY)
+            drawPlayer(playerWithOffset, scaleX, scaleY, isSlashing)
         }
     }
 }

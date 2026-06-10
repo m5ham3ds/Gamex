@@ -28,6 +28,12 @@ import com.example.game.core.GameState
 import com.example.game.core.GameConfig
 import com.example.game.engine.*
 import com.example.game.player.PlayerController
+import com.example.game.render.CameraSystem
+import com.example.game.npc.NPCManager
+import com.example.game.quest.QuestManager
+import com.example.game.save.GameDatabaseProvider
+import com.example.game.save.SaveSlot
+import android.content.Context
 import com.example.game.world.Projectile
 import com.example.game.world.Particle
 import com.example.game.world.OracleRelic
@@ -58,6 +64,54 @@ class GameViewModel : ViewModel() {
     // --- ENTITIES STATE ---
     private val _player = MutableStateFlow(PlayerState())
     val player: StateFlow<PlayerState> = _player.asStateFlow()
+
+    fun addXp(amount: Int) {
+        val p = _player.value
+        var nextXp = p.xp + amount
+        var nextLevel = p.level
+        val xpNeeded = nextLevel * 100
+        
+        if (nextXp >= xpNeeded) {
+            nextXp -= xpNeeded
+            nextLevel++
+            _player.value = p.copy(
+                level = nextLevel,
+                xp = nextXp,
+                maxHp = p.maxHp + 10f,
+                hp = p.maxHp + 10f,
+                maxEnergy = p.maxEnergy + 10f
+            )
+            triggerSparks(p.x, p.y, BlightGold)
+        } else {
+            _player.value = p.copy(xp = nextXp)
+        }
+    }
+
+    fun saveGame(context: Context, slotId: Int = 1) {
+        viewModelScope.launch {
+            val db = GameDatabaseProvider.getDatabase(context)
+            val p = _player.value
+            val save = SaveSlot(
+                id = slotId,
+                playerName = "The Silent Wanderer",
+                lastPlayed = System.currentTimeMillis(),
+                playTimeMinutes = 0,
+                currentRegion = _currentRegion.value.id,
+                playerPositionX = p.x,
+                playerPositionY = p.y,
+                hp = p.hp,
+                energy = p.energy,
+                forgetfulness = p.forgetfulness,
+                level = p.level,
+                xp = p.xp,
+                memoryFragments = p.memoryFragments,
+                currency = p.currency,
+                score = p.score,
+                jsonData = "{}"
+            )
+            db.saveDao().insertSave(save)
+        }
+    }
 
     private val _enemies = MutableStateFlow<List<Enemy>>(emptyList())
     val enemies: StateFlow<List<Enemy>> = _enemies.asStateFlow()
@@ -259,6 +313,9 @@ class GameViewModel : ViewModel() {
     private fun updatePhysics() {
         val p = _player.value
         val region = _currentRegion.value
+
+        // Update Camera
+        CameraSystem.update(p, 1200f, 800f)
 
         // Use PhysicsEngine for player movement
         val nextPlayer = PhysicsEngine.updatePlayer(p, region, movingLeft, movingRight)
@@ -651,5 +708,9 @@ class GameViewModel : ViewModel() {
 
     fun closeChronicles() {
         _gameState.value = GameState.MENU
+    }
+
+    fun onDialogueChoice(index: Int) {
+        _gameState.value = GameState.PLAYING
     }
 }

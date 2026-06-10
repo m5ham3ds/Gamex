@@ -26,6 +26,7 @@ data class Enemy(
     val radius: Float = 18f,
     val type: EnemyType,
     val direction: Direction = Direction.LEFT,
+    val state: EnemyState = EnemyState.PATROL,
     val lastShotTime: Long = 0L,
     val startX: Float, // Original position to patrol relative to
     val startY: Float, // Original position's vertical height

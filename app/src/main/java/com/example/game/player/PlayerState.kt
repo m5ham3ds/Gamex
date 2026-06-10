@@ -15,6 +15,7 @@ data class PlayerState(
     val maxEnergy: Float = 100f,
     val forgetfulness: Float = 0f,
     val level: Int = 1,
+    val xp: Int = 0,
     val currency: Int = 0,
     val score: Int = 0,
     val memoryFragments: Int = 0,

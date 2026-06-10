@@ -34,6 +34,7 @@ data class GameRegion(
     val height: Float = 800f,
     val platforms: List<Platform>,
     val hazards: List<Hazard>,
+    val sanctuaries: List<Sanctuary> = emptyList(),
     val enemyTemplates: List<EnemyTemplate>,
     val leftNodeRegionId: String? = null,
     val rightNodeRegionId: String? = null,
